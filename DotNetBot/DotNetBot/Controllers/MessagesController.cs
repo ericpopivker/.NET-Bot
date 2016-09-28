@@ -113,7 +113,7 @@ namespace DotNetBot
                 if (message.MembersAdded != null)
                 {
                     string replyText = "I am .NET Bot (v 0.9). ";
-                    replyText += "I like compilers, syntact trees and long walks on the beach." + Environment.NewLine + Environment.NewLine;
+                    replyText += "I like compilers, syntax trees and long walks on the beach." + Environment.NewLine + Environment.NewLine;
                     replyText += "Type '#help' for more information.";
 
                     Activity reply = message.CreateReply(replyText);
