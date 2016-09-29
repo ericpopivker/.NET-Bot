@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -32,8 +33,9 @@ namespace DotNetReplBot.Controllers
 
 
                 string replyText = String.Empty;
+                string activityText = CleanActivityText(activity.Text);
 
-                switch (activity.Text)
+                switch (activityText)
                 {
                     case "#help":
                         roslynSession.Reset();
@@ -47,11 +49,14 @@ namespace DotNetReplBot.Controllers
                         replyText = "I'm melting, melting. Ohhhhh, what a world, what a world.";
                         break;
 
+                    case "#debug":
+                        roslynSession.EnableDebug();
+                        break;
+
                     default:
-                        string returnValue = await roslynSession.AddAndExecuteCodeEntryAsync(activity.Text);
-                        if (returnValue == null)
-                            returnValue = GetEmptyPlaceholder();
-                        replyText = returnValue;
+
+                        var executeCodeEntryResult = await roslynSession.AddAndExecuteCodeEntryAsync(activityText);
+                        replyText = ConvertToReplyMessage(executeCodeEntryResult);
                         break;
                 }
 
@@ -75,6 +80,73 @@ namespace DotNetReplBot.Controllers
             return response;
         }
 
+        private string ConvertToReplyMessage(RoslynSession.ExecuteCodeEntryResult executeCodeEntryResult)
+        {
+            string replyMesage = String.Empty;
+            bool hasResultValue = (executeCodeEntryResult.ReturnValue != null);
+            bool hasConsoleOutput = (executeCodeEntryResult.ConsoleOutput != null);
+            bool hasExceptionErrorMessage = (executeCodeEntryResult.ExceptionErrorMessage != null);
+            bool hasDebugInfo = (executeCodeEntryResult.DebugInfo != null);
+
+
+            if (hasResultValue && !hasConsoleOutput)
+            {
+                replyMesage = executeCodeEntryResult.ReturnValue;
+            }
+
+            if (hasResultValue && hasConsoleOutput)
+            {
+                replyMesage = executeCodeEntryResult.ReturnValue;
+                replyMesage += Environment.NewLine + Environment.NewLine;
+                replyMesage += "[Console] " + executeCodeEntryResult.ConsoleOutput;
+            }
+
+            if (!hasResultValue && hasConsoleOutput)
+            { 
+                replyMesage = executeCodeEntryResult.ConsoleOutput;
+            }
+            
+            if (hasExceptionErrorMessage)
+            {
+                replyMesage = "[Exception] " + executeCodeEntryResult.ExceptionErrorMessage;
+            }
+
+            if (!hasResultValue && !hasConsoleOutput && !hasExceptionErrorMessage)
+                replyMesage = GetEmptyReplyPlaceholder();
+
+            if (hasDebugInfo)
+            {
+                replyMesage += Environment.NewLine + Environment.NewLine;
+                replyMesage += "[Debug] ";
+                replyMesage += Environment.NewLine + Environment.NewLine;
+                replyMesage += executeCodeEntryResult.DebugInfo;
+            }
+            
+            return replyMesage;
+        }
+
+        private string CleanActivityText(string activityText)
+        {
+            // In group chat Bot messages may have prefix:
+            // <at id="28:e1854b75-e713-4c26-910d-5778763c3739">@.NET REPL Bot</at>
+             
+
+            string botHandle = "@" + ConfigurationManager.AppSettings["BotId"] + "</at>";
+
+            int index = activityText.IndexOf(botHandle);
+
+            if (index != -1)
+                activityText = activityText.Remove(0, index + botHandle.Length);
+
+            activityText = activityText.Trim();
+
+            //In group chat Skype replaces quotes with &quot;
+            activityText = activityText.Replace("&quot;", @"""");
+            activityText = activityText.Replace("&amp;", @"&");
+
+            return activityText;
+        }
+
 
         static Random _rnd = new Random();
 
@@ -83,13 +155,13 @@ namespace DotNetReplBot.Controllers
             "...",
             "No output detected.",
             "I got nothing.",
-            "Would you like to play a game of chess?",
+            "... and then?",
             "Roses are red, violets are blue, I got no output for you."
         };
 
 
 
-        private string GetEmptyPlaceholder()
+        private string GetEmptyReplyPlaceholder()
         {
             int index = _rnd.Next(_emptyPlaceholders.Count);
             return _emptyPlaceholders[index];

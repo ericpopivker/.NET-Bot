@@ -6,12 +6,14 @@ using System.Threading.Tasks;
 using System.Web.Caching;
 using Microsoft.CodeAnalysis.CSharp.Scripting;
 using Microsoft.CodeAnalysis.Scripting;
+using Newtonsoft.Json;
 
 namespace DotNetReplBot
 {
     public class RoslynSession
     {
         private List<string> _codeEntries;
+        private bool _isDebugEnabled;
 
         public string SessionId { get; set; }
 
@@ -71,9 +73,21 @@ namespace DotNetReplBot
         private Object _lockLastEntryExecution = new Object();
         private ScriptState _scriptState;
 
-        public async Task<string> AddAndExecuteCodeEntryAsync(string code)
+        public class ExecuteCodeEntryResult
         {
-            string returnValue = String.Empty;
+            public string ConsoleOutput { get; set; }
+
+            public string ReturnValue { get; set; }
+
+            public string ExceptionErrorMessage { get; set; }
+
+            public string DebugInfo { get; set; }
+        }
+
+        public async Task<ExecuteCodeEntryResult> AddAndExecuteCodeEntryAsync(string code)
+        {
+            ExecuteCodeEntryResult result = new ExecuteCodeEntryResult();
+
             _scriptState = null;
 
             _codeEntries.Add(code);
@@ -95,40 +109,53 @@ namespace DotNetReplBot
                         try
                         {
 
-                            //This one have to do sync because of lock
-                            returnValue = RunCodeEntry(_codeEntries[i]).Result;
+                            try
+                            {
+                                result.ReturnValue = RunCodeEntry(_codeEntries[i]).Result;
+
+                            }
+                            catch (Exception ex)
+                            {
+                                //User inner exception because async method throws AggregateException
+                                result.ExceptionErrorMessage = ex.InnerException.Message;
+                            }
 
 
                             string consoleOutputText = newConsoleOutput.ToString();
 
                             if (!String.IsNullOrEmpty(consoleOutputText))
-                            {
-                                if (returnValue != null)
-                                {
-                                    returnValue += Environment.NewLine + "[Console] " + consoleOutputText;
-                                }
-                                else
-                                {
-                                    returnValue = consoleOutputText;
-                                }
-                            }
-
+                                result.ConsoleOutput = consoleOutputText;
                         }
                         finally
                         {
                             Console.SetOut(oldConsoleOutput);
                         }
                     }
-
                 }
                 else
                 {
-                    returnValue = await RunCodeEntry(_codeEntries[i]);
+                    try
+                    {
+                        //The return values for all but last code entry are not used
+                        string someReturnValue = await RunCodeEntry(_codeEntries[i]);
+                    }
+                    catch
+                    {
+                       // Do nada
+                    }
                 }
-                
             }
 
-            return returnValue;
+            if (_isDebugEnabled)
+            {
+                result.DebugInfo = "Input: " + code
+                                  + Environment.NewLine + Environment.NewLine
+                                  + "Output: "
+                                  + Environment.NewLine + Environment.NewLine 
+                                   + JsonConvert.SerializeObject(result);
+            }
+
+            return result;
         }
 
 
@@ -138,21 +165,15 @@ namespace DotNetReplBot
         {
             string returnValue = null;
 
-            try
-            {
-                if (_scriptState == null)
-                    _scriptState = await CSharpScript.RunAsync(code);
-                else
-                    _scriptState = await _scriptState.ContinueWithAsync(code);
+           
+            if (_scriptState == null)
+                _scriptState = await CSharpScript.RunAsync(code);
+            else
+                _scriptState = await _scriptState.ContinueWithAsync(code);
 
-                if (_scriptState.ReturnValue != null)
-                    returnValue = _scriptState.ReturnValue.ToString();
-            }
-            catch (Exception ex)
-            {
-                returnValue = ex.Message;
-            }
-
+            if (_scriptState.ReturnValue != null)
+                returnValue = _scriptState.ReturnValue.ToString();
+           
             return returnValue;
         }
 
@@ -162,6 +183,12 @@ namespace DotNetReplBot
         public void Reset()
         {
             _codeEntries.Clear();
+            _isDebugEnabled = false;
+        }
+
+        public void EnableDebug()
+        {
+            _isDebugEnabled = true;
         }
     }
 }
