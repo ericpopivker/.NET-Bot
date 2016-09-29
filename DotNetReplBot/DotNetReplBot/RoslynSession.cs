@@ -5,7 +5,7 @@ using System.Web.Caching;
 using Microsoft.CodeAnalysis.CSharp.Scripting;
 using Microsoft.CodeAnalysis.Scripting;
 
-namespace DotNetBot
+namespace DotNetReplBot
 {
     public class RoslynSession
     {
