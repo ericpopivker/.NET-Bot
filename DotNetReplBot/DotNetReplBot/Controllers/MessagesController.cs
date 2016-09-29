@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Web.Http;
 using Microsoft.Bot.Connector;
 
+
 namespace DotNetReplBot.Controllers
 {
     [BotAuthentication]
@@ -79,11 +80,11 @@ namespace DotNetReplBot.Controllers
 
         private static List<string> _emptyPlaceholders = new List<string>
         {
-            "Hmmm...",
-            "Zzzzz...",
-            "Make up yoir mind, friend.",
-            "Wait let me call Billy G...",
-            "I got nothing."
+            "...",
+            "No output detected.",
+            "I got nothing.",
+            "Would you like to play a game of chess?",
+            "Roses are red, violets are blue, I got no output for you."
         };
 
 

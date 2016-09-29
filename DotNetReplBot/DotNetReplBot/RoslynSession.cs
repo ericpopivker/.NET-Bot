@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading.Tasks;
 using System.Web.Caching;
 using Microsoft.CodeAnalysis.CSharp.Scripting;
@@ -33,6 +35,7 @@ namespace DotNetReplBot
         public static RoslynSession Create(string sessionId)
         {
             var session = new RoslynSession(sessionId);
+            session.CodeEntries.Add("using System;");
             session.AddToCache();
             return session;
 
@@ -65,39 +68,95 @@ namespace DotNetReplBot
             System.Web.HttpRuntime.Cache.Add(key, this, null, Cache.NoAbsoluteExpiration,  new TimeSpan(1, 0, 0), CacheItemPriority.High, null);
         }
 
+        private Object _lockLastEntryExecution = new Object();
+        private ScriptState _scriptState;
 
         public async Task<string> AddAndExecuteCodeEntryAsync(string code)
         {
             string returnValue = String.Empty;
-            ScriptState state = null;
+            _scriptState = null;
 
             _codeEntries.Add(code);
 
             for (int i = 0; i < _codeEntries.Count; i++)
             {
-                try
+                bool isLastCodeEntry = i == _codeEntries.Count - 1;
+                TextWriter oldConsoleOutput = null;
+                TextWriter newConsoleOutput = null;
+
+                if (isLastCodeEntry)
                 {
-                    state = await RunCodeEntry(_codeEntries[i], state);
-                    returnValue = state.ReturnValue?.ToString();
+                    lock (_lockLastEntryExecution)
+                    {
+                        oldConsoleOutput = Console.Out;
+                        newConsoleOutput = new StringWriter();
+                        Console.SetOut(newConsoleOutput);
+
+                        try
+                        {
+
+                            //This one have to do sync because of lock
+                            returnValue = RunCodeEntry(_codeEntries[i]).Result;
+
+
+                            string consoleOutputText = newConsoleOutput.ToString();
+
+                            if (!String.IsNullOrEmpty(consoleOutputText))
+                            {
+                                if (returnValue != null)
+                                {
+                                    returnValue += Environment.NewLine + "[Console] " + consoleOutputText;
+                                }
+                                else
+                                {
+                                    returnValue = consoleOutputText;
+                                }
+                            }
+
+                        }
+                        finally
+                        {
+                            Console.SetOut(oldConsoleOutput);
+                        }
+                    }
+
                 }
-                catch (Exception ex)
+                else
                 {
-                    returnValue = ex.Message;
+                    returnValue = await RunCodeEntry(_codeEntries[i]);
                 }
+                
             }
 
             return returnValue;
         }
 
-        private async Task<ScriptState> RunCodeEntry(string code, ScriptState state)
-        {
-            if (state == null)
-                state = await CSharpScript.RunAsync(code);
-            else
-                state = await state.ContinueWithAsync(code);
 
-            return state;
+
+        
+        private async Task<string> RunCodeEntry(string code)
+        {
+            string returnValue = null;
+
+            try
+            {
+                if (_scriptState == null)
+                    _scriptState = await CSharpScript.RunAsync(code);
+                else
+                    _scriptState = await _scriptState.ContinueWithAsync(code);
+
+                if (_scriptState.ReturnValue != null)
+                    returnValue = _scriptState.ReturnValue.ToString();
+            }
+            catch (Exception ex)
+            {
+                returnValue = ex.Message;
+            }
+
+            return returnValue;
         }
+
+
 
 
         public void Reset()
