@@ -5,10 +5,11 @@ using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Web.Http;
+using DotNetFiddle.Bot.Repl;
 using Microsoft.Bot.Connector;
 
 
-namespace DotNetReplBot.Controllers
+namespace DotNetFiddle.Bot.Controllers
 {
     [BotAuthentication]
     public class MessagesController : ApiController
@@ -23,13 +24,13 @@ namespace DotNetReplBot.Controllers
             {
                 ConnectorClient connector = new ConnectorClient(new Uri(activity.ServiceUrl));
 
-                
+
                 // calculate something for us to return
                 //int length = (activity.Text ?? string.Empty).Length;
 
                 //return our reply to the user
                 //Activity reply = activity.CreateReply($"You sent {activity.Text} which was {length} characters");
-                var roslynSession = RoslynSession.LoadOrCreate(activity.Conversation.Id);
+                var roslynSession = ReplSession.LoadOrCreate(activity.Conversation.Id);
 
 
                 string replyText = String.Empty;
@@ -80,35 +81,35 @@ namespace DotNetReplBot.Controllers
             return response;
         }
 
-        private string ConvertToReplyMessage(RoslynSession.ExecuteCodeEntryResult executeCodeEntryResult)
+        private string ConvertToReplyMessage(ReplFiddleExecuteResponse replFiddleExecuteResponse)
         {
             string replyMesage = String.Empty;
-            bool hasResultValue = (executeCodeEntryResult.ReturnValue != null);
-            bool hasConsoleOutput = (executeCodeEntryResult.ConsoleOutput != null);
-            bool hasExceptionErrorMessage = (executeCodeEntryResult.ExceptionErrorMessage != null);
-            bool hasDebugInfo = (executeCodeEntryResult.DebugInfo != null);
+            bool hasResultValue = (replFiddleExecuteResponse.ReturnValue != null);
+            bool hasConsoleOutput = (replFiddleExecuteResponse.ConsoleOutput != null);
+            bool hasExceptionErrorMessage = (replFiddleExecuteResponse.ExceptionErrorMessage != null);
+            bool hasDebugInfo = (replFiddleExecuteResponse.DebugInfo != null);
 
 
             if (hasResultValue && !hasConsoleOutput)
             {
-                replyMesage = executeCodeEntryResult.ReturnValue;
+                replyMesage = replFiddleExecuteResponse.ReturnValue;
             }
 
             if (hasResultValue && hasConsoleOutput)
             {
-                replyMesage = executeCodeEntryResult.ReturnValue;
+                replyMesage = replFiddleExecuteResponse.ReturnValue;
                 replyMesage += Environment.NewLine + Environment.NewLine;
-                replyMesage += "[Console] " + executeCodeEntryResult.ConsoleOutput;
+                replyMesage += "[Console] " + replFiddleExecuteResponse.ConsoleOutput;
             }
 
             if (!hasResultValue && hasConsoleOutput)
-            { 
-                replyMesage = executeCodeEntryResult.ConsoleOutput;
+            {
+                replyMesage = replFiddleExecuteResponse.ConsoleOutput;
             }
-            
+
             if (hasExceptionErrorMessage)
             {
-                replyMesage = "[Exception] " + executeCodeEntryResult.ExceptionErrorMessage;
+                replyMesage = "[Exception] " + replFiddleExecuteResponse.ExceptionErrorMessage;
             }
 
             if (!hasResultValue && !hasConsoleOutput && !hasExceptionErrorMessage)
@@ -119,9 +120,9 @@ namespace DotNetReplBot.Controllers
                 replyMesage += Environment.NewLine + Environment.NewLine;
                 replyMesage += "[Debug] ";
                 replyMesage += Environment.NewLine + Environment.NewLine;
-                replyMesage += executeCodeEntryResult.DebugInfo;
+                replyMesage += replFiddleExecuteResponse.DebugInfo;
             }
-            
+
             return replyMesage;
         }
 
@@ -129,7 +130,7 @@ namespace DotNetReplBot.Controllers
         {
             // In group chat Bot messages may have prefix:
             // <at id="28:e1854b75-e713-4c26-910d-5778763c3739">@.NET REPL Bot</at>
-             
+
 
             string botHandle = "@" + ConfigurationManager.AppSettings["BotId"] + "</at>";
 
@@ -196,7 +197,7 @@ namespace DotNetReplBot.Controllers
             {
                 // Handle add/remove from contact lists
                 // Activity.From + Activity.Action represent what happened
-               
+
             }
             else if (message.Type == ActivityTypes.Typing)
             {
@@ -205,7 +206,7 @@ namespace DotNetReplBot.Controllers
             else if (message.Type == ActivityTypes.Ping)
             {
             }
- 
+
             return null;
         }
     }

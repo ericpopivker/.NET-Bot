@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotNetFiddle.Bot.Tests", "DotNetFiddle.Bot.Tests\DotNetFiddle.Bot.Tests.csproj", "{7433EB28-D4A1-4E49-8A5E-B8F7935755ED}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotNetFiddle.Bot", "DotNetFiddle.Bot\DotNetFiddle.Bot.csproj", "{D59088D5-223E-4724-BE9F-FD22D8C6FA2F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{7433EB28-D4A1-4E49-8A5E-B8F7935755ED}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7433EB28-D4A1-4E49-8A5E-B8F7935755ED}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7433EB28-D4A1-4E49-8A5E-B8F7935755ED}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7433EB28-D4A1-4E49-8A5E-B8F7935755ED}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D59088D5-223E-4724-BE9F-FD22D8C6FA2F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D59088D5-223E-4724-BE9F-FD22D8C6FA2F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D59088D5-223E-4724-BE9F-FD22D8C6FA2F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D59088D5-223E-4724-BE9F-FD22D8C6FA2F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
